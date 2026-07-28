@@ -156,6 +156,22 @@ router.get("/", (req, res) => {
 '
 47. Kolla i Postman så att det funkar sen tryck Send och så får vi alla våra foods array samt 200 OK.
 
-48. Det vi har gjort nu är GET all routen för vår foods api med en array memory.
+48. Det vi har gjort nu är GET all routen för vår foods api med en array memory. Glöm inte att comitta efter.
 
-49. Sedan Comittar vi och 
+49. Nu vill vi se till att hämta GET single, alltså hämta bara en foods. Gå in i foods.ts och skriv dessa kod i helhet:
+
+router.get("/:id", (req, res) => {
+  const food = foods.find((food) => food._id === req.params.id);
+
+  if (!food)
+    return res.status(404).send("The food with the given ID was not found.");
+
+  return res.send(food);
+});
+
+50. Sedan vill vi testa det med Postman så vi plockar ut ett id i vår foods.ts tex apple som var ""5b21ca3eeb7f6fbccd471815" och så skriver vi i URL:n "localhost:5432/api/foods/5b21ca3eeb7f6fbccd471815" och trycker Send så vi får tillbaka vår ID apple objekt samt 200 OK.
+
+51. MEN vi måste testa alla cases eller id så att allting fungerar så vi vill se att våra if satser fungererar men det vi gör är att skickar en falsk id i Postman och trycker på Send så får vi vårt meddelande "The food with the given ID was not found." samt 404 Not Found och detta visar att allting funkar korrekt.
+
+52. 
+
