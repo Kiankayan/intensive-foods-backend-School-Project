@@ -94,4 +94,68 @@ app.use("/api/categories", categories);
 
 36. Nu när vi har gjort vår refaktorisering i en egen route så vill vi testa och se att det fortfarande fungerar. Så öppna Postman och tryck på Send igen så ser vi att vi får tillbaka vår http status 200 OK samt kategorier.
 
-37. Comitta detta innan vi går vidare.
+37. Comitta detta innan vi går vidare och jobba med foods. Viktigt är att vi behöver inte göra om allt nu när vi gjorde vår refaktorisering med foods utan vi kan fortsätta och skriva kod på de snygga sättet istället.
+
+38. öppna index.ts och skriv en ny app.use foods samt importera foods alltså såhär:
+
+import foods from "./routes/foods";
+
+app.use("/api/foods", foods);
+
+39. Skapa en foods.ts fil i routes mappen sen importera express längst upp som tidigare sedan const router och slutligen exportera vi den som default alltså såhär i helhet:
+
+import express from "express"
+
+const router = express.Router();
+
+export default router;
+
+40. Det läraren gillar att göra är det most basic som är att skicka ut ett meddelande för att se att allting funkar mellan kopplingen av index.ts och foods.ts når ut och har skett på ett korrekt sätt så skriv i vår foods.ts fil såhär:
+
+router.get("/", (req, res) => {
+  return res.send("Foods router - det funkar!");
+});
+
+41. Vi skriver på detta viset för att se att det funkar via Postman så öppna Postman sedan ändra URL:n till "localhost:5432/api/foods" och trycka Send. Vi fick tillbaka vårt meddelandet "Foods router - det funkar!"
+
+42. Låt oss sedan gå in i vår fakeFoodService.ts där vi har dessa 2 koder se nedan:
+
+export interface Food {
+  _id: string;
+  name: string;
+  category: Category;
+  numberInStock: number;
+  price: number;
+}
+
+interface FoodFormData {
+  _id?: string;
+  name: string;
+  categoryId: string;
+  numberInStock: number;
+  price: number;
+}
+
+43. Den första koden är den som ska sparas i databasen samt att den matchar egentligen med vår prisma schema (kommer lära oss mer om prisma i nästa modul)
+
+44. Den andra koden är den interfacen som kommer in i vår request punkt body allts req.body så just nu för vår fakeFoodService.ts fil så kommer vi bara plocka den första koden samt hela listan med foods alltså const foods: Food[] = [];... och så vidare.
+
+45. vi får en rödmarkering på vår interface i foods.ts som är under "Category" så gå in i categories.ts för att exportera vår interface samt importera den i foods.ts alltså såhär:
+
+export interface Category {
+  _id: string;
+  name: string;
+}
+
+
+46. I vår foods.ts fil så vill vi att vår router.get ska hämta alla mina foods så ska man bara returnera vårt foods array alltså ta ta bot meddelandet "Foods router - det funkar!" och skriv foods alltså såhär:
+
+router.get("/", (req, res) => {
+  return res.send(foods);
+})
+'
+47. Kolla i Postman så att det funkar sen tryck Send och så får vi alla våra foods array samt 200 OK.
+
+48. Det vi har gjort nu är GET all routen för vår foods api med en array memory.
+
+49. Sedan Comittar vi och 
