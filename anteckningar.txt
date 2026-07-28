@@ -1,0 +1,97 @@
+Intensive Foods Backend - Del 1
+
+1. Skapa ett tomt projekt sedan sätter man helt enkelt igång.
+
+2. Öppna terminalen och skriv in npm init -y eller npm init --yes. Detta ser till att man får sin package.json fil.
+
+3. Med den filen så kan man installera npm paket alltså Express så skriv "npm i express" i terminalen. Då får vi upp package-lock.son filen.
+
+4. Efter så installerar man TypeScript och Nodemon som dev dependencies.
+
+5. Skriv "npm i -D typescript nodemon" i terminalen. Finns också att man installera globalt då skriver man "npm i -g typescript nodemon".
+
+6. Sen ska vi initiera typescript också och skriver i terminale "tsc --init" Detta skapar en tsconfig.json fil.
+
+7. Vi ska också initiera git så skriv "git init" i terminalen.
+
+8. Vi märker att det har samlats 1k+ filer och för att se till att den minskar markant så skapar man en fil som heter .gitignore. Sedan skriver vi i filen "node_modules" så märker vi att 1k+ filer reduceras till 5.
+
+9. Den första filen vi skapar efter är index.ts och dubellkolla att det funkar genom att få en console.log("Hello from index.ts"). i terminalen.
+
+10. Ändra några konfigurationer i tsconfig.json filen så ändra "target: "2020" sen "moduleresolution: "Node16" sen ändra module: "Node16".
+
+11. Nu kan vi börja bygga vårt API och vi gör det med hjälp av Express. Vi börja skriva längst upp med import express from "express";. kom ihåg att det finns också require som funkar precis samma sak men import är mer kopplat till typescript som vi har använt sen tidigare.
+
+12- Vi kommer få en rödmarkering på vår import och lägger vi musen så får vi information på vad som saknas eftersom vi inte har installerat de types biblioteket vi behöver för import.
+
+13. Öppna terminalen och skriver "npm i --save-dev @types/express".
+
+14. Sedan skriver vi const app = express(); i vår index.ts fil för anropa express. Sedan skapar vi en port för vår localhost och skriver "app.listen(5432)" i index.ts filen.
+
+15. Alltså såhär ska det se ut i helhet:
+
+app.listen(5432), () => console.log("Listening on port " +(5432));
+
+16. För att få extra poäng hos Läraren eller kanske på arbetsplatsen så skriver man på det här viset:
+
+const PORT =(5432);
+
+app.listen(PORT, () => console.log("Listening on port " + PORT));
+
+17. Nu när vi ska lägga till och bygga upp vår API så ska det ju vara intensive foods backend. Dom API:erna vi vill ha är categories och foods.
+
+18. Vi börjar med en array memory först eftersom det är lättare i början sen växlar man om till Prisma. Såhär skriver vi vår array memory med app.get:
+
+app.get("/api/categories", (req, res) => {});
+
+19: Nu så måste vi hämta våra categoryService.ts och foodService.ts för att det ska funka så skapa filerna i denna projekt och klistra in koden från tidigare projekt.
+
+20. Glöm inte att commita också.
+
+21. Efter så plockar man ut all kod förutom export function getCategories i vår fakeCategoryServices.ts, kopiera in dom i index.ts filen precis under const app = express();.
+
+22. Kan ta bort vår "export" som står framför interface sedan måste man returnera vår categories array då skriver man "return res.send(categories)". alltså såhär i helhet:
+
+app.get("/api/categories", (req, res) => {
+        return res.send(categories);
+    });
+
+23. När vi använder res.send så hoppar man ut ur request processin pipeline så det är den sista pilen som skickar ut responsen.
+
+24. Nu låt oss testa för att se om det funkar, öppna Postman och skriv i URL:n "localhost:5432/api/categories" på GET och trycker Send så får vi tillbaka vår lista med kategorier samt 200 OK.
+
+25. Nu har vi gjort vår första GET endpoint men detta är ju men array såklart så vi har inte gjort med databasen alls men det är ett jätte bra första steg.
+
+26. För vår categories så behöver vi inte mer utan räcker med GET alltså app.get och vi behöver inte heller göra en schema för cateogries eftersom en schema ska validera inputen som kommer in från klienten. Så den gäller bara när klienten ska skicka in ett body object så med andra ord, så innebär det att vi bara skicka in en schema när vi har PUT eller POST eftersom det är de ända HTTP metoderna som tar emot en body.
+
+27. Vi kan nu ta bort fakeCategoryService.ts filen för vi har redan den i index.ts så vi behöver inte den längre. 
+
+28. Hur kan vi snygga till vår index.ts efter vi har kopierat koden från fakeCategoryService.ts? Vi kan ha det i en categories.ts fil i vår routes mapp. Så vi skapar en mapp som heter routes sedan filen i denna mapp som heter categories.ts.
+
+29. Nu kan vi lägga in allt som har med categories att göra i den filen så vi klistra in vår kod från index.ts till categories.ts
+
+30. Sedan behöver vi importera exporess längst upp i categories.ts och istället för att skapa en const app så skapar vi en router istället alltså såhär i helhet:
+
+import express from "express";
+
+const router = express.Router();
+
+31. Glöm inte exporta längst ner med "export default router;" i categories.ts filen.
+
+32. Sedan måste vi ändra alla våra app.get till router.get i categories.ts filen sedan gå tilbaka till index.ts för att importera router alltså såhär:
+
+import categories from "./routes/categories";
+
+33. För att installera den som en middleware i vår applikation hur gör man då? routehandler är också en middleware. Vi vill lägga till den som en request processing pipeline?
+
+34. Svaret: vi använder app.use i index.ts filen alltså detta skrivs under vår const app, se nedan:
+
+const app = express();
+
+app.use("/api/categories", categories);
+
+35. vi vill inte ha för mycket av /api/categories så vi kan ta bort den i cateogires och ha endast kvar "/".
+
+36. Nu när vi har gjort vår refaktorisering i en egen route så vill vi testa och se att det fortfarande fungerar. Så öppna Postman och tryck på Send igen så ser vi att vi får tillbaka vår http status 200 OK samt kategorier.
+
+37. Comitta detta innan vi går vidare.
