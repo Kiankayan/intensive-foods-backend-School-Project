@@ -173,5 +173,150 @@ router.get("/:id", (req, res) => {
 
 51. MEN vi måste testa alla cases eller id så att allting fungerar så vi vill se att våra if satser fungererar men det vi gör är att skickar en falsk id i Postman och trycker på Send så får vi vårt meddelande "The food with the given ID was not found." samt 404 Not Found och detta visar att allting funkar korrekt.
 
-52. 
+52. Sedan committar man sen nästa steg är vår POST.
 
+53. I foods.ts så lägger vi till vår POST alltså såhär:
+
+router.post("/", (req, res) => {
+  
+})
+
+54. Sen har vi tre steg inom vår router post som vi ska lägga till och skriva kod som är:
+
+1: validera body.
+
+2: skapa det nya food objektet.
+
+3. skicka ut till klienten.
+
+55. Vad behöver vi för att kunna validera vår body? först så skapar vi en mapp som heter schema med en ny fil som heter Food.ts och vi ska ha Pascalcase eftersom det är en data modell så alla data modeller nämns alltid i pascalcase tex vi har "interface Food" som är också en data modell.
+
+56. För att skapa vår schema så behöver vi installera Zod så öppna terminalen och skriv "npm install zod" sedan importerar vi Zod i vår Foods.ts fil längst upp såhär:
+
+import { z } from "zod";
+
+57. Viktigt nu är att vi vill plocka ut från vår intensive foods projekt i en anna vscode där vi hittar i vår FoodForm.tsx/FoodFormPage.tsx och plockar ut vår const schema och klistrar in den i Foods.ts alltså hela detta:
+
+const schema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, { message: "Name is required" }),
+  categoryId: z.string().min(1, { message: "You must select a category" }),
+  numberInStock: z
+    .number()
+    .min(1, { message: "Stock must be at least 1" })
+    .max(100, { message: "Stock cannot exceed 100" }),
+  price: z
+    .number()
+    .min(1, { message: "Price must be at least 1" })
+    .max(20, { message: "Price cannot exceed 20" }),
+});
+
+58. Sedan skriver man längst ner en funktion som ska vara vår export funktion alltså såhär:
+
+export function validateFood(formData: any) {
+  return schema.safeParse(formData);
+}
+
+59. Sedan skriver man koden infer ovanför vår export function såhär: 
+
+type FormData = z.infer<typeof schema>;
+
+60. Såhär ska den se ut i helhet:
+
+type FormData = z.infer<typeof schema>;
+
+export function validate(body: any) {
+  return schema.safeParse(body);
+}
+
+61. Nu när vi har skapat vår schema så kan vi återgå det vi ville göra vilket var validera body så nu ska vi importera min schema i foods.ts filen alltså såhär:
+
+import {validate} from "../schema/Food";
+
+62. Nu kan vi använda den för att validera vår body så tillbaka till vår router.post och skriv denna kod såhär:
+
+router.post("/", (req, res) => {
+  
+const validation = validate(req.body);
+
+if (!validation.success) return res.status(400).send(validation.error.issues[0].message);
+});
+
+63. viktigaste är att vi har 400 som är bad request vilket i sin tur betyder att klienten skickade in ett objekt som var felaktigt.
+
+64. Nästa steg är att skapa det nya food objektet och det ska innehålla dom sakerna som finns i vårt interface. Vi kan börja med att skapa ett objekt under alltså såhär: 
+
+const category = getCategories().find(
+    (category) => category._id === req.body.categoryId,
+  );
+
+  if(!category) return res.status(400).send("The category with the given id was not found");
+
+const food: Food = {
+  _id: Date.now().toString(),
+name: req.body.name,
+numberInStock: req.body.numberInStock,
+price: req.body.price,
+isFavored: false,
+category,
+}
+
+    foods.push(food);
+
+});
+
+65. Anledning till varför vi plockar från vår fakeFoodService.ts är för det är exakt samma kod när vi bygger och gör en fake service på backend, vi använder precis samma kod det är därför mycket är kopierat just därifrån.
+
+66. Viktigt notis! Är att validation från backend är det som är avgörande, validation från frontend är bara ögongodis alltså rättare sagt det är inte bara för att det ska se snyggt ut utan det är för att användare ska får en bättre användar upplevelse.
+
+67. Slutligen så ska vi skicka ut det till klienten genom att skriva samt om den lyckas så ska den få en status 200 OK alltså såhär: 
+
+return res.status(200).send(food);
+
+68. Gå till Postman, ändra till POST sen rätt URL "localhost:5432/api/foods" och även trycker body sedan raw och säkerställer att den är på JSON. Vi skicakr in ett JSON objekt som ska ha name samt i citationstecken för ett ska vara JSON och skapar en ny food som ska heta "Buddha's hand" sen skriver vi under "categoryId" med en tom sträng och låt oss även skicka in "price" som ska vara number så vi sätter 15 och "numberInStock" med också nummber 15 alltså såhär ska det se ut i Postman:
+
+{
+  "name": "Buddha's hand",
+  "categoryId": "",
+  "price": 15,
+  "numberInStock": 15
+}
+
+69. Sedan trycker vi på Send för att se om den klagar eller inte. Vi fick en text som är ett fel som är svåååårt att debugga samt är en rookie mistake så se nedan vad postman visade för oss:
+
+{
+        "expected": "object",
+        "code": "invalid_type",
+        "path": [],
+        "message": "Invalid input: expected object, received undefined"
+    }
+
+
+70. Detta är ett jätte svårt att debugga och återigen första rookie mistake vilket man gör i början av sin karriär när man skapa express API:er.
+
+71. För att kunna felsöka och lösa detta problem så börjar man console.logga eftersom console.log är ett perfekt sätt att få mer information om olika steg i koden, händelseförloppet. Vi lägger vår console log "console.log("req.body", req.body);" i foods.ts filen under vår const validation = validate(req.body); med detta kod alltså såhär:
+
+
+const validation = validate(req.body);
+
+console.log("req.body", req.body);
+
+72. Gå in i postman igen och tryck på Send, sedan i terminalen så ser vi en text där det står: 
+
+req.body undefined
+
+73. Detta ger oss en bra information samt att den här lärdomen kommer vara stor nytta i framtiden så för att hitta problemet så ligger den i index.ts filen. Felet är för att vi har inte lagt till en kod som är app.use(express.json()); och express.json är den som tolkar inputen och lägger in den i req.body. så att den får de värdet som vi skickar in. express.json ser till att de objekten som kommer in i requesten som sätts på req.body som ett objekt alltsp body populeras som man brukar säga, den populerar bodyn. 
+
+
+74. har vi kvar vår console.log och går till postman trycker Send sedan kollar på terminalen så ser vi att det står:
+
+req.body {
+  name: "Buddha's hand",
+  categoryId: '2',
+  price: 15,
+  numberInStock: 15
+}
+
+75. Den är inte undefined längre utan nu har vi fått vår req.body som vi ville och detta är en viktig lärdom som inte får göras fel igen.
+
+76. Nu när vi är klara med vår POST endpoint så måste vi comitta allting 
