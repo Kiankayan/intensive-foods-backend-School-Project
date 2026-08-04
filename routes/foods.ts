@@ -2,6 +2,39 @@ import express from "express";
 import { Category, getCategories } from "./categories";
 import { validate } from "../schema/Food";
 
+// Intensive Foods Backend - Del 2
+
+// Börja installera prisma "npm install prisma" sedan "npx prisma init" för att skapa vår prisma schema alltså schema.prisma samt .env fil.
+
+// Kopiera PRISMA_DATABAS_URL från vercel in i .env filen sen ersätta den falska databasurlen.
+
+// Viktigt att se till att ha url i datasource db i shcema.prisma filen så det funkar samt ändra version från prisma 7 till prisma 6.
+
+// Låt oss skapa vår prisma modeller i schema.prisma filen alltså såhär:
+
+// model Category {
+//  id String @id @default(cuid())
+//  name String
+//  Food Food[]
+// }
+
+// model Food {
+//  id String @id @default(cuid())
+//  name String
+//  numberInStock Int
+//  price Float
+//  category Category @relation(fields: [categoryId], references: [id])
+//  categoryId String
+// }
+
+// Sedan behöver man göra en migration genom att skriva "npx prisma migrate dev -n init" för att skapa länken mellan databasen och backend sen prisma generate för att skapa en klient på backend som vi kan använda för att spara data.
+
+// OBS! såfort man gör en ändring i schema.prisma så måste man generera på nytt alltså skriva i terminalen "npx prisma generate".
+
+// Efter att ha skrivit "npx prisma migrate dev -n init" så hamnar vi lite i problem och det vi kan göra är att flytta migration mappen från vår "node_backend" projekt hit sedan skriver vi bara "npx prisma migrate dev".
+
+// Viktigt att committa detta så skrive "configured prisma and added migrations" sen tryck Commit.
+
 const router = express.Router();
 
 interface Food {
@@ -129,6 +162,34 @@ router.post("/", (req, res) => {
   foods.push(food);
 
   return res.status(201).send(food);
+});
+
+router.put("/:id", (req, res) => {
+  const food = foods.find((food) => food._id === req.params.id);
+
+  if (!food)
+    return res.status(404).send("The food with the given ID was not found.");
+
+  const validation = validate(req.body);
+
+  if (!validation.success) {
+    return res.status(400).send(validation.error.issues);
+  }
+
+  const category = getCategories().find(
+    (category) => category._id === req.body.categoryId,
+  );
+
+  if (!category)
+    return res.status(404).send("The category with the given id was not found");
+
+  food.name = req.body.name;
+  food.category = category;
+  food.price = req.body.price;
+  food.numberInStock = req.body.numberInStock;
+  food.isFavored = req.body.isFavored;
+
+  return res.send(food);
 });
 
 export default router;
