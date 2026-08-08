@@ -2,189 +2,157 @@ import express from "express";
 import { validate } from "../schema/Food";
 import { PrismaClient } from "@prisma/client";
 
-// Intensive Foods Backend - Del 2
+// Registrera en användare
 
-// Börja installera prisma "npm install prisma" sedan "npx prisma init" för att skapa vår prisma schema alltså schema.prisma samt .env fil.
+// Vi har kopplat vår foods och categories till vår egna backend men vi kan inte skapa eller logga in en användare men det kommer vi lösa.
 
-// Kopiera PRISMA_DATABAS_URL från vercel in i .env filen sen ersätta den falska databasurlen.
+// Finns tre saker som ska göras:
 
-// Viktigt att se till att ha url i datasource db i shcema.prisma filen så det funkar samt ändra version från prisma 7 till prisma 6.
+// Första är att skapa en route för /api/users.
+// Andra är att skapa zod schema för våra users.
+// Tredje är att skapa en prisma modell så vi kan skapa våra users i databasen.
 
-// Låt oss skapa vår prisma modeller i schema.prisma filen alltså såhär:
+// Skapa först users routern i index.ts filen alltså såhär:
 
-// model Category {
-//  id String @id @default(cuid())
-//  name String
-//  Food Food[]
+// import users from "./routes/users";
+
+// app.use("/api/users", users);
+
+// Vår "import users from "./routes/users";" är röd markerad pga vi inte har en router så in i routes mappen och skapa en ny fil med namnet "users.ts" fil.
+
+// Sedan skapar vi denna kod i vår users.ts fil alltså såhär:
+
+// import express from "express";
+
+// const router = express.Router();
+
+// router.post("/", (req, res) => {
+//   return res.send("creating user");
+// });
+
+// export default router;
+
+// Sedan fixar vi importen i index.ts filen.
+
+// Efter går man till Postman och dubbellkollar om vi får vår "creating user" texten så ändra URL:n till "localhost:5432/api/users" med POST sen trycker Send och om vi får "creating user" texten betyder att vi har skapat en route.
+
+// Låt oss nu skapa vår zod schema för vår users så i schemas mappen skapar vi en ny fil som heter "User.ts" där vi skriver denna kod "import { z } from "zod";
+
+// Vår user schema finns i vår frontend projekt i filen "Register.tsx" så vi kan kopiera den sedan klistra in den i vår User.ts fil alltså såhär i helhet:
+
+// import { z } from "zod";
+
+// const schema = z.object({
+//  name: z.string().min(1, { message: "Name is required" }),
+
+//  username: z
+//    .string()
+//    .min(1, { message: "Email is required" })
+//    .min(3, { message: "Invalid email." }),
+
+//  password: z
+//    .string()
+//    .min(1, { message: "Password is required" })
+//    .min(5, { message: "Password is too short" }),
+// });
+
+// Sedan exporterar vi en validate funktion som validerar body beroende på schema alltså såhär:
+
+// export function validate(body: any) {
+//   return schema.safeParse(body);
 // }
 
-// model Food {
+// Låt oss byta ut vår "any" till en FormData som är samma TypeScript typ som kommer in genom våra zod schema det får vi hjälp med att skriva z.infer<FormData> alltså såhär:
+
+// type Formdata = z.infer<typeof schema>;
+
+// För att se hela vår User.ts fil så kan du kolla anteckningar/bilder.
+
+// Sedan ska vi gå in i vår schema.prisma fil för att skapa en ny modell i vår databas som innehåller User alltså såhär:
+
+// model User {
 //  id String @id @default(cuid())
 //  name String
-//  numberInStock Int
-//  price Float
-//  category Category @relation(fields: [categoryId], references: [id])
-//  categoryId String
+//  username String
+//  password String
 // }
 
-// Sedan behöver man göra en migration genom att skriva "npx prisma migrate dev -n init" för att skapa länken mellan databasen och backend sen prisma generate för att skapa en klient på backend som vi kan använda för att spara data.
+// Nu när vi gjorde en ändring i vår schema.prisma fil så måste vi in i terminalen och skriva "npx prisma migrate dev -n added_user_model" föär att skapa en migration och synka vår databas samt automatiskt generera en ny prisma client som vi sedan kan använda i våra routes för att prata med den här user modellen i databasen.
 
-// OBS! såfort man gör en ändring i schema.prisma så måste man generera på nytt alltså skriva i terminalen "npx prisma generate".
+// Sedan kan vi se i vår migrations mapp att vi har nu 2 migrations mappar som är init och added_user_model.
 
-// Efter att ha skrivit "npx prisma migrate dev -n init" så hamnar vi lite i problem och det vi kan göra är att flytta migration mappen från vår "node_backend" projekt hit sedan skriver vi bara "npx prisma migrate dev".
+// Nu kan vi gå tillbaka till vår users.ts fil för att lägga till några users. Vi börjar med att importera prismaclienten samt vår const prisma instans alltså såhär:
 
-// Viktigt att committa detta så skrive "configured prisma and added migrations" sen tryck Commit efter så kan vi börja arbeta med vår prisma client som vi skapade.
-
-// Börjar med categories.ts filen sedan skriver vi längts upp för att importera prisma clienten och skapa const prisma alltså såhär:
-
-// "import { PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client";
 
 // const prisma = new PrismaClient();
 
-// Sedan går vi till vår router.get och skriver detta:
+// Sedan skapar vi vår await inom vår router.post alltså såhär:
 
-// router.get("/api/categories", async (req, res) => {
-//  await prisma.category.findMany();
-//  return res.send(categories);
+// await prisma.user.create({
+//   data: {
+//     name: req.body.name,
+//     username: req.body.username,
+//     password: req.body.password,
+//   },
 // });
 
-// Nu har vi inga kategorier i vår databas men vi löser det genom att skapa tre nya och gå in i index.ts och skriver först vår prisma import och const prisma sedan kategorierna alltås såhär såhär:
+// Vi måste också validera genom att använda validate funktionen alltså importera den i vår users.ts fil samt validera vår req.body inne i router.post samt skicka en res.status(400) och sedan en sista grej så vi inte skapar flera users med samma username  alltså såhär i helhet:
 
-// async function createCategory(name: string) {
-//  const category = await prisma.category.create({ data: { name } });
-//  console.log(category);
-// }
+// import express from "express";
+// import { PrismaClient } from "@prisma/client";
+// import { validate } from "../schema/User";
 
-// createCategory("Fruit");
-// createCategory("Vegetables");
-// createCategory("Snacks");
-
-// Sedan skrive vi nodemon index.ts så får vi upp våra tre kategorier som har skapats i databasen.
-
-// Nu kan vi ta bort den koden för det för tillfälighetens skull samt prisma importen och prisma const.
-
-// Nu kan vi gå till Postman och skriva i URL:n "http://localhost:5432/api/categories" för att se om vi får vår kategorier från vår databas och vi får dessa tre kategorier i vår postman:
-
-//[
-//    {
-//        "id": "cmsf16gfx0000bv6g0oorsp2q",
-//        "name": "Snacks"
-//    },
-//    {
-//        "id": "cmsf16gls0001bv6gxdnknsx3",
-//        "name": "Vegetables"
-//    },
-//    {
-//        "id": "cmsf16gly0002bv6goyasj71m",
-//        "name": "Fruit"
-//    }
-//]
-
-// Så nu har vi kopplat vår categories.ts till vår databas där vi får våra id och namn på våra 3 kategorier.
-
-// Nu ska vi göra samma med foods.ts filen så vi ändrar vår router.get till detta såhär:
-
-// router.get("/", async (req, res) => {
-// const foods =await prisma.food.findMany();
-// return res.send(foods);
-// });
-
-// Sedan ändrar vi vår router.get single alltså "id" så vi ändrar det till detta:
-
-// router.get("/:id", async (req, res) => {
-//  const food = await prisma.food.findFirst({ where: { id: req.params.id } });
-
-// Sedan ändrar vi vår router.post samt använder include så vi skapar relations alltså vi gör såhär:
+// const prisma = new PrismaClient();
+// const router = express.Router();
 
 // router.post("/", async (req, res) => {
-//  const validation = validate(req.body);
-
-//  console.log("req.body", req.body);
+// const validation = validate(req.body);
 
 //  if (!validation.success) {
-//    return res.status(400).send(validation.error.issues);
+//    return res.status(400).send(validation.error.issues[0]?.message);
 //  }
 
-//  const category = await prisma.category.findFirst({
-//    where: { id: req.body.categoryId },
+//  const existingUser = await prisma.user.findFirst({
+//    where: { username: req.body.username },
 //  });
 
-//  if (!category)
-//    return res.status(404).send("The category with the given id was not found");
+//  if (existingUser) {
+//    return res.status(400).send("User already exists.");
+//  }
 
-//  const food = await prisma.food.create({
+//  const user = await prisma.user.create({
 //    data: {
-//      name: req.body.name,
-//      numberInStock: req.body.numberInStock,
-//      price: req.body.price,
-//      categoryId: req.body.categoryId,
-//    },
-//    include: {
-//      category: true,
-//    },
+//     name: req.body.name,
+//     username: req.body.username,
+//     password: req.body.password,
+//   },
 //  });
 
-//  return res.status(201).send(food);
+//  return res.send(user);
 // });
 
-// Om det känns lite luddigt när man kommer tillbaka till anteckningar då frågar vi chatgpt för upplysning och upprepning.
+// export default router;
 
-// Nu så är det router.put och router.delete som ska ändras samt läggas till och se nedan bland koden i foods.ts filen.
+// Låt oss nu testa det i Postman genom att skriva ett namn, username med mejladress sedan password alltså såhär:
 
-// Ett annat sätt att kolla är i terminalen med ny flik och skriva "npx prisma studio" och sedan kolla i databasen.
+// {
+//  "name": "Kian",
+//  "username": "Kian.taklif@gmail.com",
+//  "password": "12345"
+// }
 
-// Sedan tar man bort importen som har för vår fake array att gör alltså vår import { Category, getCategories } längst upp samt våra interface och const foods i foods.ts. Sedan kan vi ta bort koden som vi skapade i categories.ts filen. Så vi behöver inte de längre eftersom det funkar nu direkt mot vår databas. Sedan gör man en commit och skriver "connected food and category routes to database" sedan trycker på Commit.
+// Med URL:n "localhost:5432/api/users" och metod POST sen trycker på Send så ska vi få tillbaka med status 200 OK som visar att vi lyckades skapa en ny user. Trycker vi på Send en gång till så får vi text meddelande "User already exists." som visar att vi inte skapar flera users med samma username.
 
-// Innan vi avslutar så vill vi öppna vår intensive-foods-frontend mapp som finns i mappen "React 14" men kopierat en ny i "Node.js 17" mappen, där vi byter ut vår const API_BASEURL som finns i FoodService.ts filen. Alltså istället för den går mot server så ska den gå mot vår egna som vi skapade alltså vår localhost:5432. Det vi gör är att kommentera ut den gamla sen skriver den nya såhär:
+// Detta betyder nu att vi kan nu skapa users på vår backend. Vi kan även gå till vår frontend och testa i vår register på "http://localhost:5173/register" och skriva samma namn, mejl, lösenord som vi gjorde i postman så kommer vi få att "User already exists"
 
-// const API_BASEURL = "http://localhost:5432/api/foods";
+// Även om vi registrera så blir vi inte automatisk inloggade eftersom vi inte skickade tillbaka en Jason Web Token "JSW" från vår user routes alltså users.ts fil men det kommer vi kolla på lite längre fram i utbildningen.
 
-// Så gör vi samma med vår categoryService.ts filen som går till "http://localhost:5432/api/categories".
+// Men vi har ett annat viktigare problem först! Om vi går in och startar vår prisma studio alltså skriver i terminalen "npx prisma studio" så ser vi att vi har 3 styckna users men koden visas i klartext som var "12345" och detta är jätte allvarligt ifall vår databas skulle bli utsatt för ett intrång så kommer hackern kunna se lösenorden i klartext och att de flesta människorna anänvder samma lösenord överallt alltså att det innebär att hackern får tillgång till personens lösenord till många andra system tex internetbanker.
 
-// Ändra även vår authService och userService också så ändra dessa två så vibyter till "http://localhost:5432/api/users" och "http://localhost:5432/api/auth".
+// Därför är det viktigt att man krypterar lösenorden innan man lägger in det i databasen och det kommer vi lära oss nästa lektion med lösenordskryptering.
 
-// Sedan sparar vi och öppnar terminalen med "npm run dev" för att se om alla våra foods hämtas eller inte.
-
-// Vår foods hämtades inte och ser man i console på browser så står det massa error med texten:
-
-// "Access to XMLHttpRequest at 'http://localhost:5432/api/categories' from origin 'http://localhost:5173' has been blocked by CORS policy"
-
-// CORS står för "Cross Origin Resource Sharing" Alltås vad CORS är att dessa två är inte samma domän alltså våra localhost som du ser ena är 5432 och den andra var 5173. Dessa två kan inte prata med varandra om inte backend explicit tillåter att vår domän gör anrop till backend.
-
-// Alltså för att lösa detta problem och ställa in CORS så är det enkelt. Vi går till vår Intensive-foods-backend och öppnar en ny terminal sen skriver "npm intall cors" sedan går vi till vår index.ts fil där vi importerar cors och den kommer bli röd markerad och säga att vi saknar typen så lägger man musen på så ser man vad som ska skrivas i terminalen och lösa problemet alltså är det detta "npm i --save-dev @types/cors" sedan försvinner vår error.
-
-// Sedan fortsätter vi i vår index.ts fil och lägger till cors som en middleware som måste vara vår första middleware i vår applikation och vi anropar det såhär med detta "app.use(cors());" alltså såhär ska det se ut i helhet:
-
-// import cors from "cors";
-
-// app.use(cors());
-// app.use(express.json());
-// app.use("/api/categories", categories);
-// app.use("/api/foods", foods);
-
-// Nu kan man konfigurera genom att skriva i cors objekten och om vi väljer då origin som är ett sätt att välja specifika domäner som får lov att koppla upp sig till vår backend alltså skriver vi shår:
-
-// app.use(
-//   cors({
-//     origin: "http://localhost:5173",
-//   })
-// );
-
-// Detta kommer se till att endasst localhost:5173 som domän kan koppla upp sig till backenden men hade vi haft ingeting alltså tomt så kunde vilka domäner som helst kunna koppla till vår databas.
-
-// Sparar vi nu i vscode och går tillbaka till vår hemsida sedan uppdaterar vi så får vi vår categories med tex Buddha's hand i vår lista alltså betyder det att allting fungerar korrekt.
-
-// OBS! CORS används för att blockera tex DDoS attacker alltså att det skapar massa botar och robotar från utlandet för att göra massa datanarop mot ens backend för att krascha servern, vår databas och detta är väldigt allvarligt och jätte känt fenomen och syftet är för att kunna "döda" sina konkurrenter. Man gör detta för att skapa DDoS virus eller DDoS anfall.
-
-// CORS är ett sätt att skydda sig mot just det så detta är en viktig kod att ha när man skapar en backend, databas eller webbplats.
-
-// Commita också nu med "added cors configuration"
-
-// Nu vill vi testa alla våra PUT, POST och DELETE genom att ändra och skapa i vår lista men vi har döljt våra knappar från tidigare uppgift så vi får fixa det om det inte fungerar så löser vi med ChatGPT.
-
-// Vi kan också se om nånting har skapat i vår databas via vår prisma studio.
-
-// Så det var hela backend uppgiften för både modul 16 och 17 alltså nu har vi kopplat oss till ne riktig databas med vår egen skapade backend.
+// Men glöm inte att commita så
 
 const router = express.Router();
 const prisma = new PrismaClient();
