@@ -1,6 +1,7 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { validate } from "../schema/User";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -20,11 +21,13 @@ router.post("/", async (req, res) => {
     return res.status(400).send("User already exists.");
   }
 
+  const password = bcrypt.hashSync(req.body.password, 12);
+
   const user = await prisma.user.create({
     data: {
       name: req.body.name,
       username: req.body.username,
-      password: req.body.password,
+      password,
     },
   });
 
