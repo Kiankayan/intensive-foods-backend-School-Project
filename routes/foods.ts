@@ -2,11 +2,9 @@ import express from "express";
 import { validate } from "../schema/Food";
 import { PrismaClient } from "@prisma/client";
 
-// Auth routen
+// Admin
 
-// Nu har vi lärt oss om hur vi skapar en användare och kryptera lösenord på databasen.
-
-// Nästa steg är att kunna logga in en användare men innan vi sätter igång så vill vi commita koden från förra genomgången alltså skriv "added password encryption" sen tryck commit.
+// Vi börja med att commita den här auth routen och skriver "added auth route and schema" trycker Commit.
 
 const router = express.Router();
 const prisma = new PrismaClient();
