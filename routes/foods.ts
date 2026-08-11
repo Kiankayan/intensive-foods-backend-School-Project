@@ -1,30 +1,25 @@
 import express from "express";
 import { validate } from "../schema/Food";
 import { PrismaClient } from "@prisma/client";
+import auth from "../middleware/auth";
 
-// Headers
+// Admin middleware
 
-// Om vi kollar på vår UserService.ts fil i vår frontend projekt så ser vi vår UserRegister funktion så skickar vi anropet till "http://localhost:5432/api/users" från de api anropet plockar vi ut headers, x-auth-token som innehåller vår JWT token som vi sätter sen i vår local storage med hjälp av auth.loginwithJwt. Detta fungerar inte just nu pga vår user route på backend inte returnerar  x-auth-token header men det kommer vi fixa.
+// Problemet just nu är att vi kan ta bort en food genom Postman förutsatt att vi är autentiserade men trots att vi inte är en Admin.
 
-// För att se till att vi registrerar oss samt är inloggade i vår intensive foods hemsida direkt efter registreringen så måste vi ha denna kod b.l.a object destructering och spread operator samt lägga till koder i user service.ts filen i på vår backend projekt alltså såhär:
+// Målet med denna lektion är att begränsa så endast Admin kan anropa delete endpoint för foods.
 
-// import jwt from "jsonwebtoken";
+// Logga in i en vanlig användare i vår frontend projekt, öppna devtools sedan tryck på Application, gå till Local storage och plocka ut vår token Value.
 
-// const { password: p, ...userWithoutPassword } = user;
+// Sedan öppnar vi Postman och öppnar upp Headers tabben där kan vi lägga till en header genom att skriva x-auth-token och nästa kolumn klistra in värdet som var vår token sedan trycker vi på Send.
 
-//  const token = jwt.sign(userWithoutPassword, process.env.JWT_SECRET!);
+// Efter vi klickade på Send med vårt get single anropet alltså "localhost:5432/api/foods/123" så istälelt för att vi fick status 401 så får vi status 404 Not Found. Detta betyder att vår auth middleware lyckades samt fick vi vårt svar från vår route handler med meddelandet "The food with the given ID was not found."
 
-//  return res
-//    .header("access-control-expose-headers", "x-auth-token")
-//    .header("x-auth-token", token)
-//    .send(userWithoutPassword);
-// });
+// Låt oss testa med get all alltså ändra till "localhost:5432/api/foods" med GET sedan plockar vi ett id i listan tex vår "Buddha's hand" ta id och lägg in den efter "api/foods/id" sedan ändrar vi till DELETE och det här anropet borde man kunna endast göra om vi är admin men vi är inloggade som vanlig användare just nu sen trycker vi Send.
 
-// Se bilder/anteckningar
+// Efter vi trycker på Send så får vi status 200 OK vilket betyder att vi kunde ta bort vår id som vanlig användare.
 
-// Efter detta så skapar vi en ny användare via registrering och trycker register knappen så är vi automatiskt inloggade samt isAdmin false där "Delete" knapparna är borta och vi har ingen tillgång till dem.
-
-// Slutligen så commitar vi med "added token to user response headers" och trycker på Commit
+// För att lösa detta så måste man skapa en Admin middleware men innan vi börjar bygga vår Admin middleware så börjar vi först commita vår kod och skriver "added auth middleware" sen Commit.
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -34,8 +29,15 @@ router.get("/", async (req, res) => {
   return res.send(foods);
 });
 
-router.get("/:id", async (req, res) => {
-  const food = await prisma.food.findFirst({ where: { id: req.params.id } });
+router.get("/:id", auth, async (req, res) => {
+  const id = req.params.id as string;
+
+  const food = await prisma.food.findFirst({
+    where: { id },
+    include: {
+      category: true,
+    },
+  });
 
   if (!food)
     return res.status(404).send("The food with the given ID was not found.");
@@ -43,7 +45,7 @@ router.get("/:id", async (req, res) => {
   return res.send(food);
 });
 
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   const validation = validate(req.body);
 
   console.log("req.body", req.body);
@@ -74,8 +76,12 @@ router.post("/", async (req, res) => {
   return res.status(201).send(food);
 });
 
-router.put("/:id", async (req, res) => {
-  const food = await prisma.food.findFirst({ where: { id: req.params.id } });
+router.put("/:id", auth, async (req, res) => {
+  const id = req.params.id as string;
+
+  const food = await prisma.food.findFirst({
+    where: { id },
+  });
 
   if (!food)
     return res.status(404).send("The food with the given ID was not found.");
@@ -94,7 +100,7 @@ router.put("/:id", async (req, res) => {
     return res.status(404).send("The category with the given id was not found");
 
   const updatedFood = await prisma.food.update({
-    where: { id: req.params.id },
+    where: { id },
     data: {
       name: req.body.name,
       numberInStock: req.body.numberInStock,
@@ -103,19 +109,24 @@ router.put("/:id", async (req, res) => {
     },
   });
 
-  return res.send(food);
+  return res.send(updatedFood);
 });
 
-router.delete("/:id", async (req, res) => {
-  const food = await prisma.food.findFirst({ where: { id: req.params.id } });
+router.delete("/:id", auth, async (req, res) => {
+  const id = req.params.id as string;
+
+  const food = await prisma.food.findFirst({
+    where: { id },
+  });
 
   if (!food)
     return res.status(404).send("The food with the given ID was not found.");
 
   const deletedFood = await prisma.food.delete({
-    where: { id: req.params.id },
+    where: { id },
   });
-  return res.send(food);
+
+  return res.send(deletedFood);
 });
 
 export default router;

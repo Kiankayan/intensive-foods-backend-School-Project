@@ -9,10 +9,12 @@ const app = express();
 
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
-app.use("/api/categories", categories);
-app.use("/api/foods", foods);
 app.use("/api/users", users);
 app.use("/api/auth", auth);
+app.use("/api/categories", categories);
+app.use("/api/foods", foods);
+
+//app.use(checkAuth);
 
 const PORT = 5432;
 
