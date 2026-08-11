@@ -2,6 +2,7 @@ import express from "express";
 import { validate } from "../schema/Food";
 import { PrismaClient } from "@prisma/client";
 import auth from "../middleware/auth";
+import admin from "../middleware/admin";
 
 // Admin middleware
 
@@ -20,6 +21,66 @@ import auth from "../middleware/auth";
 // Efter vi trycker på Send så får vi status 200 OK vilket betyder att vi kunde ta bort vår id som vanlig användare.
 
 // För att lösa detta så måste man skapa en Admin middleware men innan vi börjar bygga vår Admin middleware så börjar vi först commita vår kod och skriver "added auth middleware" sen Commit.
+
+// Nu öppnar vi middleware mappen där vi skapar en ny fil som heter admin.ts där exporterar vi en funktion heter admin där den tar emot våra 3 parametrar som är req,res,next och även importera alltså såhär:
+
+// import { NextFunction, Request, Response } from "express";
+
+// export default function admin(req: Request, res: Response, next: NextFunction) {}
+
+// Vår admin middleware är super simpel där vi behöver en endast if sats som kollar om användaren är admin om inte den är det så skickar vi status "403 Forbidden".
+
+// För att kolla om en användare är en admin så behöver vi gå in i auth.ts där vi kan ha tillgång till user objekten. När vi kör vår jwt.verify så syns det i vår payload via hemsidan "jwt.io" så kopierar vi vår token från Postman och klistrar in i jwt.io så ser vi vår Payload med user objektet samt isAdmin och det är just den vi vill komma åt.
+
+// Frågan är hur löser vi detta genom att överföra const.user som finns i auth.ts fil till vår admin.ts fil?
+
+// Vi löser det genom att skriva i auth.ts fil där vi skapar en interface authRequest som ska ärva den vanliga express requesten sedan utöka den med ett user objekt där vår user objekt ska ha en typ som kallas för Omit. Omit betyder uteslut såhär ska det se ut i auth.ts filen alltså såhär:
+
+// import { User } from "@prisma/client";
+// import { NextFunction, Request, Response } from "express";
+// import jwt from "jsonwebtoken";
+
+// export interface AuthRequest extends Request {
+//    user: Omit<User, "password">
+// }
+
+// Sedan ändrar vi vår const user till detta såhär:
+
+// const user = jwt.verify(token, process.env.JWT_SECRET!) as Omit<User, "password">
+//   (req as AuthRequest).user = user
+
+// Spara vår auth.ts sedan gå till admin.ts filen och skriver såhär:
+
+// import { NextFunction, Request, Response } from "express";
+// import { AuthRequest } from "./auth";
+
+// export default function admin(req: Request, res: Response, next: NextFunction) {
+//  const isAdmin = (req as AuthRequest).user.isAdmin;
+
+//  if (!isAdmin) return res.status(403).send("Unauthorized");
+
+//  next();
+// }
+
+// Sista steget är att att applicera vår admin middleware i admin.ts på de endpoints som kräver admin behörighet som finns i vår foods.ts fil.
+
+// Så vi ska lägga till importen samt vår admin alltså såhär:
+
+// import  admin  from "../middleware/admin";
+
+// router.delete("/:id", auth, admin, async (req, res)
+
+// Låt oss nu testa detta i vår Postman så börja med att GET all för att hämta ett id från listan.
+
+// Plocka id från vår "Muffin" sedan lägg in den i URL:n "localhost:5432/api/foods/id" ändra metoden till DELETE och trycka Send.
+
+// Så ser vi att vi får status 403 Forbidden med meddelandet "Unauthorized" alltså så fungerar allt som det ska.
+
+// Går vi nu tillbaka till vår frontend hemsida i intensive foods och loggar ut vår användare sedan loggar in med ett admin konto så ser vi att delete knappen finns för vår Muffin i listan och att vi är inloggade som Admin.
+
+// Går vi nu till Application i devtools och plockar ut token Value och klistrar in i Postman headers för vår x-auth-token och trycker på Send för exakt samma anrop så ser vi att vi får status 200 OK där vi nu kan ta bort vårt food objekt.
+
+// Sammanfattningsvis: Nu har vi lagt till begränsning på vår backend och inte bara på frontend och låt oss commita vår admin middleware för vår sista lektion för backend modul så skriv "added admin middleware" sedan tryck på Commit.
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -112,7 +173,7 @@ router.put("/:id", auth, async (req, res) => {
   return res.send(updatedFood);
 });
 
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, admin, async (req, res) => {
   const id = req.params.id as string;
 
   const food = await prisma.food.findFirst({
